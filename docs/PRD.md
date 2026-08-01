@@ -127,7 +127,7 @@ If Nudge is **off**, or if it can't reach the hook (app not running), Claude Cod
 
 ## 10. Milestones
 
-- **M0 — Spike (few days):** Confirm exactly what data `PreToolUse` hooks receive and how a hook communicates an allow/deny decision back to Claude Code, on the currently installed Claude Code version. This determines whether full inline gating (§4) is achievable as designed, or whether v1 needs to fall back to "notify + one-click focus the terminal" for the first release.
+- **M0 — Spike: ✅ done.** Confirmed against official docs for Claude Code 2.1.220: `PreToolUse` hooks receive full tool-call details on stdin and can return `{"hookSpecificOutput": {"permissionDecision": "allow"|"deny"|"ask", ...}}` on stdout, which fully skips Claude's own terminal prompt for `allow`/`deny`. Hook execution blocks Claude Code for up to a 600s default timeout — comfortably enough for a human to respond via notification. **Full inline gating is achievable as designed** — no fallback needed. Details: [spike/M0-findings.md](../spike/M0-findings.md).
 - **M1 — MVP:** Menu bar app, on/off toggle, `Notification`-hook-based alerts (Claude is waiting on you), plain-language summary for common tool types, "Open Claude" jump-to-session. No inline gating yet if M0 finds it infeasible quickly — ship the safe version first.
 - **M2 — Inline approve/deny:** `PreToolUse` gating wired up, Yes/No resolves the request without opening Claude, risk-based flagging (P1 §10 item 10), timeout fallback.
 - **M3 — Polish:** queueing, DND/quiet hours, sound/badge, session naming polish, history log.

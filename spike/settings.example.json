@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/prernakashyap/Claude notification/spike/log-payload-hook.sh",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}

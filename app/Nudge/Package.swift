@@ -7,7 +7,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Nudge",
-            path: "Sources/Nudge"
+            path: "Sources/Nudge",
+            resources: [
+                .copy("Resources")
+            ]
         )
     ]
 )

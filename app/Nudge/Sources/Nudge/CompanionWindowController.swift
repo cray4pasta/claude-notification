@@ -8,17 +8,19 @@ enum CompanionItem {
     case ask(id: UUID, Summarizer.Summary)
 }
 
-/// Owns the floating "lil guy" window (PRD docs/PRD.md §7). Visuals here
-/// are placeholders — a plain rounded panel + emoji face — since the real
-/// character design is a separate pass. Behavior is the real thing:
-/// docked bottom-right, floats above full-screen apps and follows across
-/// Spaces, only visible when a Claude Code session is open AND the master
-/// toggle is on, and queues pending items instead of stacking windows.
+/// Owns the floating "lil guy" window (PRD docs/PRD.md §7). The face shows
+/// a custom animated GIF per mood if one exists in Sources/Nudge/Resources
+/// (see the README there for the spec), falling back to a plain emoji
+/// otherwise. Behavior: docked bottom-right, floats above full-screen apps
+/// and follows across Spaces, only visible when a Claude Code session is
+/// open AND the master toggle is on, and queues pending items instead of
+/// stacking windows.
 final class CompanionWindowController: NSObject {
     static let shared = CompanionWindowController()
 
     private var window: NSPanel!
     private var faceLabel: NSTextField!
+    private var faceImageView: NSImageView!
     private var bodyLabel: NSTextField!
     private var buttonStack: NSStackView!
     private var yesButton: NSButton!
@@ -136,8 +138,27 @@ final class CompanionWindowController: NSObject {
 
     // MARK: - Rendering
 
+    /// Shows a custom animated GIF for `mood` if you've dropped one into
+    /// Sources/Nudge/Resources/ (see the README there for the exact spec),
+    /// falling back to the plain emoji otherwise — the companion works
+    /// out of the box either way, and upgrades automatically the moment a
+    /// matching file shows up.
+    private func setMood(_ mood: String, fallbackEmoji: String) {
+        if let url = Bundle.module.url(forResource: mood, withExtension: "gif"),
+           let image = NSImage(contentsOf: url) {
+            faceImageView.image = image
+            faceImageView.animates = true
+            faceImageView.isHidden = false
+            faceLabel.isHidden = true
+        } else {
+            faceImageView.isHidden = true
+            faceLabel.isHidden = false
+            faceLabel.stringValue = fallbackEmoji
+        }
+    }
+
     private func renderIdle() {
-        faceLabel.stringValue = "🙂"
+        setMood("idle", fallbackEmoji: "🙂")
         bodyLabel.stringValue = ""
         bodyLabel.isHidden = true
         buttonStack.isHidden = true
@@ -147,7 +168,13 @@ final class CompanionWindowController: NSObject {
     private func render(_ item: CompanionItem) {
         switch item {
         case let .info(summary):
-            faceLabel.stringValue = summary.isQuestion ? "💭" : (summary.isRisky ? "😬" : "💬")
+            if summary.isQuestion {
+                setMood("question", fallbackEmoji: "💭")
+            } else if summary.isRisky {
+                setMood("alert", fallbackEmoji: "😬")
+            } else {
+                setMood("notify", fallbackEmoji: "💬")
+            }
             bodyLabel.stringValue = summary.body
             bodyLabel.isHidden = false
             yesButton.isHidden = true
@@ -164,7 +191,7 @@ final class CompanionWindowController: NSObject {
                 self.showNextIfNeeded()
             }
         case let .ask(_, summary):
-            faceLabel.stringValue = summary.isRisky ? "⚠️" : "🤔"
+            setMood(summary.isRisky ? "alert" : "asking", fallbackEmoji: summary.isRisky ? "⚠️" : "🤔")
             bodyLabel.stringValue = summary.body
             bodyLabel.isHidden = false
             yesButton.isHidden = false
@@ -218,12 +245,23 @@ final class CompanionWindowController: NSObject {
         container.addSubview(accent)
         accentView = accent
 
+        let faceFrame = NSRect(x: 14, y: panelSize.height - 54, width: 48, height: 44)
+
         let face = NSTextField(labelWithString: "🙂")
         face.font = .systemFont(ofSize: 32)
         face.alignment = .center
-        face.frame = NSRect(x: 14, y: panelSize.height - 54, width: 48, height: 44)
+        face.frame = faceFrame
         container.addSubview(face)
         faceLabel = face
+
+        // Same slot as faceLabel — setMood() shows whichever one applies.
+        // .scaleProportionallyUpOrDown letterboxes non-square art instead
+        // of distorting it, so custom GIFs don't need to be pixel-exact.
+        let image = NSImageView(frame: faceFrame)
+        image.imageScaling = .scaleProportionallyUpOrDown
+        image.isHidden = true
+        container.addSubview(image)
+        faceImageView = image
 
         let body = NSTextField(wrappingLabelWithString: "")
         body.font = .systemFont(ofSize: 12)

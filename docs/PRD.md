@@ -1,9 +1,32 @@
 # PRD: Claude Code Approval Notifier ("Nudge")
 
-**Status:** Draft v1
+**Status:** M1 built (Clippy-style companion, real inline gating)
 **Owner:** pkashyap@uw.edu
 **Date:** 2026-08-01
 **Platform target:** macOS (menu bar app)
+
+---
+
+## Implementation note (post-M0/M1)
+
+Two things changed from the original plan below, both discovered during
+the M1 build — see [app/README.md](../app/README.md) for the full story:
+
+1. **No OS notification banners.** macOS hard-denies local notification
+   authorization for apps without a real Apple Developer signing identity
+   (confirmed for both `UNUserNotificationCenter` and the legacy
+   `NSUserNotificationCenter`), and this machine has no signing identity.
+   Rather than block on that, the "lil guy" is a **floating companion
+   window Nudge draws itself** — closer to the original Clippy-style
+   mental model anyway, and needs no OS permission at all.
+2. **M1 and M2 merged.** Since the M0 spike already confirmed `PreToolUse`
+   gating works, and the companion widget needs *something* to show
+   regardless, the first build went straight to real inline Yes/No
+   gating via `PreToolUse` rather than shipping a notify-only version
+   first off the `Notification` hook.
+
+The §6–§10 sections below are the original spec; treat the companion
+window as the concrete realization of "the lil guy" throughout.
 
 ---
 
@@ -128,9 +151,8 @@ If Nudge is **off**, or if it can't reach the hook (app not running), Claude Cod
 ## 10. Milestones
 
 - **M0 — Spike: ✅ done.** Confirmed against official docs for Claude Code 2.1.220: `PreToolUse` hooks receive full tool-call details on stdin and can return `{"hookSpecificOutput": {"permissionDecision": "allow"|"deny"|"ask", ...}}` on stdout, which fully skips Claude's own terminal prompt for `allow`/`deny`. Hook execution blocks Claude Code for up to a 600s default timeout — comfortably enough for a human to respond via notification. **Full inline gating is achievable as designed** — no fallback needed. Details: [spike/M0-findings.md](../spike/M0-findings.md).
-- **M1 — MVP:** Menu bar app, on/off toggle, `Notification`-hook-based alerts (Claude is waiting on you), plain-language summary for common tool types, "Open Claude" jump-to-session. No inline gating yet if M0 finds it infeasible quickly — ship the safe version first.
-- **M2 — Inline approve/deny:** `PreToolUse` gating wired up, Yes/No resolves the request without opening Claude, risk-based flagging (P1 §10 item 10), timeout fallback.
-- **M3 — Polish:** queueing, DND/quiet hours, sound/badge, session naming polish, history log.
+- **M1 — Built ✅ (merged with M2's gating, see Implementation note above):** Menu bar app with on/off toggle; floating companion window (placeholder character) shown when a Claude Code session is open and the toggle is on, via `SessionStart`/`SessionEnd` hooks; plain-language summarizer for common tool types + risk-keyword flagging; `PreToolUse`-based inline Yes/No that genuinely blocks Claude Code and resolves without opening a terminal; `Notification`-hook informational bubble for idle/heads-up events; "Open Claude" escape hatch; safe timeout fallback (no response → Claude Code's own normal prompt). Not yet done: real character art (placeholder emoji face), exact-window session targeting, risk-based default focus, DND, history log. Code: [app/](../app/).
+- **M3 — Polish (not started):** real character design, risk-based default focus (P1 §6 item 10), DND/quiet hours (P1 #11), sound/badge, session→window registry for precise "Open Claude" targeting, history log, launch-at-login.
 
 ## 11. Success looks like
 

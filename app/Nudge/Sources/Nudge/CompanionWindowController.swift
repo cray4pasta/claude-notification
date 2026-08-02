@@ -147,7 +147,7 @@ final class CompanionWindowController: NSObject {
     private func render(_ item: CompanionItem) {
         switch item {
         case let .info(summary):
-            faceLabel.stringValue = summary.isRisky ? "😬" : "💬"
+            faceLabel.stringValue = summary.isQuestion ? "💭" : (summary.isRisky ? "😬" : "💬")
             bodyLabel.stringValue = summary.body
             bodyLabel.isHidden = false
             yesButton.isHidden = true
@@ -156,7 +156,9 @@ final class CompanionWindowController: NSObject {
             buttonStack.isHidden = false
             accentView.layer?.backgroundColor = (summary.isRisky ? NSColor.systemRed : NSColor.controlAccentColor).cgColor
             infoDismissTimer?.invalidate()
-            infoDismissTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: false) { [weak self] _ in
+            // Questions stay up longer than a passive heads-up — there's
+            // an actual answer to go type, not just something to notice.
+            infoDismissTimer = Timer.scheduledTimer(withTimeInterval: summary.isQuestion ? 45 : 20, repeats: false) { [weak self] _ in
                 guard let self else { return }
                 self.currentItem = nil
                 self.showNextIfNeeded()

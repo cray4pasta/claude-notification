@@ -10,6 +10,11 @@ enum Summarizer {
         let isRisky: Bool
         let rawDetail: String?
         let cwd: String?
+        /// True for "Claude is asking you something" (e.g. AskUserQuestion)
+        /// as opposed to "Claude wants to do something." There's nothing to
+        /// approve/deny — the answer happens in the terminal — so this
+        /// only ever renders as a heads-up, never a Yes/No ask.
+        let isQuestion: Bool
     }
 
     private static let riskyKeywords = [
@@ -48,7 +53,7 @@ enum Summarizer {
             body = rawMessage.map(cleaned) ?? "Claude has an update for you."
         }
 
-        return Summary(title: projectName, body: body, isRisky: risky, rawDetail: rawMessage, cwd: event.cwd)
+        return Summary(title: projectName, body: body, isRisky: risky, rawDetail: rawMessage, cwd: event.cwd, isQuestion: false)
     }
 
     // MARK: - PreToolUse hook (gate-able)
@@ -87,7 +92,43 @@ enum Summarizer {
             body: "Claude wants to \(body).",
             isRisky: isRisky(riskyCheck),
             rawDetail: detail,
-            cwd: event.cwd
+            cwd: event.cwd,
+            isQuestion: false
+        )
+    }
+
+    // MARK: - AskUserQuestion (a question, not a permission ask)
+
+    /// Claude Code's `AskUserQuestion` tool is a `PreToolUse` call like any
+    /// other, but it isn't asking to *do* anything — it's asking the human
+    /// something and waiting for an answer in the terminal. Surfacing it
+    /// as a Yes/No decision would be actively wrong (what would "No" even
+    /// mean?), so this gets its own summary and, in AppDelegate, gets
+    /// auto-allowed instead of gated.
+    static func summarizeQuestion(_ event: HookEvent) -> Summary {
+        let projectName = projectName(fromCwd: event.cwd)
+        let input = event.toolInput ?? [:]
+
+        var questionTexts: [String] = []
+        if case let .array(questions)? = input["questions"] {
+            for case let .object(fields) in questions {
+                if let text = fields["question"]?.stringValue {
+                    questionTexts.append(text)
+                }
+            }
+        }
+
+        let body = questionTexts.isEmpty
+            ? "Claude has a question for you."
+            : questionTexts.joined(separator: " / ")
+
+        return Summary(
+            title: projectName,
+            body: body,
+            isRisky: false,
+            rawDetail: body,
+            cwd: event.cwd,
+            isQuestion: true
         )
     }
 

@@ -38,6 +38,13 @@ the real character design is a separate pass.
 - If Nudge isn't running, or you tap nothing before the timeout, the hook
   produces no output and Claude Code **falls back to its normal terminal
   prompt** — nothing is ever silently blocked.
+- **`AskUserQuestion` calls are a special case.** They arrive via
+  `PreToolUse` like anything else, but they're Claude asking *you*
+  something, not asking permission to act — there's no sensible Yes/No for
+  "should I use date-fns or Luxon?". These are auto-allowed immediately
+  (no wait, no delay to the terminal) while still showing up on the
+  companion as a heads-up with the actual question text, so you know
+  Claude's waiting on an answer even if you're on another screen.
 
 ## Build & run
 

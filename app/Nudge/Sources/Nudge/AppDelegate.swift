@@ -140,7 +140,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Tools that ask the human something rather than requesting
+    /// permission to act. These get surfaced but never gated — see
+    /// Summarizer.summarizeQuestion.
+    private static let questionToolNames: Set<String> = ["AskUserQuestion"]
+
     private func handlePreToolUse(_ event: HookEvent) -> Data? {
+        if let toolName = event.toolName, Self.questionToolNames.contains(toolName) {
+            let summary = Summarizer.summarizeQuestion(event)
+            DebugLog.log("PreToolUse question surfaced (not gated): \(summary.body)")
+            DispatchQueue.main.async {
+                CompanionWindowController.shared.enqueue(.info(summary))
+            }
+            return encodeDecision("allow", reason: "Question tool — surfaced, not gated")
+        }
+
         let summary = Summarizer.summarizeToolUse(event)
         let id = UUID()
         PendingRequestStore.shared.register(id)

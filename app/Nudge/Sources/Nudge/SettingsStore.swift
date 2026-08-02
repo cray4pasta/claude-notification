@@ -1,8 +1,9 @@
 import Foundation
 
-/// The master on/off switch (PRD docs/PRD.md §6, P0 #2). When off, incoming
-/// hook payloads are dropped silently — Claude Code's own terminal prompts
-/// are untouched either way, since M1 doesn't gate anything (that's M2).
+/// The master on/off switch (PRD docs/PRD.md §6, P0 #2). When off,
+/// Notification/PreToolUse payloads are dropped in AppDelegate before any
+/// gating or UI happens — Claude Code falls back to its own normal
+/// terminal prompt, exactly as if Nudge weren't installed at all.
 final class SettingsStore {
     static let shared = SettingsStore()
 

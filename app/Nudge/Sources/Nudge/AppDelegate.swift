@@ -152,6 +152,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return nil
 
         case "Notification":
+            guard SettingsStore.shared.isEnabled else {
+                DebugLog.log("Notification ignored — Nudge disabled")
+                return nil
+            }
             let summary = Summarizer.summarizeNotification(event)
             DebugLog.log("notification enqueued: \(summary.body)")
             NotificationManager.deliver(summary: summary)
@@ -161,6 +165,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return nil
 
         case "PreToolUse":
+            guard SettingsStore.shared.isEnabled else {
+                // No interception at all while disabled — not even an
+                // auto-allow, which would silently approve things without
+                // asking. Returning nil defers to Claude Code's own normal
+                // permission flow, exactly as if Nudge weren't installed.
+                DebugLog.log("PreToolUse ignored — Nudge disabled, deferring to normal prompt")
+                return nil
+            }
             return handlePreToolUse(event)
 
         default:

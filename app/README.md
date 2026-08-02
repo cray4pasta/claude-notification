@@ -7,20 +7,48 @@ approve/deny right there — without opening the terminal. See
 [spike/M0-findings.md](../spike/M0-findings.md) for the hook contract this
 is built on.
 
-## Why there's no macOS notification banner
+## Notification banners: two dead ends, then `osascript`
 
 The original plan used native `UNUserNotificationCenter` banners. Testing
 on this machine found that macOS hard-denies local notification
 authorization for any app that isn't signed with a real Apple Developer
 identity (`UNErrorCodeNotificationsNotAllowed`, no permission prompt even
 shown) — confirmed for both the modern and legacy (`NSUserNotificationCenter`)
-notification APIs. There's no signing identity on this machine
-(`security find-identity -v -p codesigning` → 0 identities), so instead of
-blocking on that, Nudge draws its own floating window (the "companion") —
-no OS permission needed, since it's just Nudge's own UI.
+notification APIs, and there's no signing identity on this machine
+(`security find-identity -v -p codesigning` → 0 identities).
+
+The floating companion window doesn't need either — it's Nudge's own UI, no
+OS permission required — so that became the primary interactive surface
+regardless. But a real OS banner is still useful as a supplementary
+catch-your-eye signal (shows across Spaces/full-screen apps, has a sound,
+survives even if the companion window hasn't been noticed), so
+[`NotificationManager.swift`](Nudge/Sources/Nudge/NotificationManager.swift)
+now fires one via `osascript -e 'display notification ...'` instead — an
+idea borrowed from
+[claude-menubar-buddy](https://github.com/spyza008/claude-menubar-buddy),
+which hits the same signing wall and solves it the same way. AppleScript's
+`display notification` posts under the OS's own identity, needs no
+entitlement or bundle at all, and isn't deprecated — but it also has no
+click-through/action-button callback, so it's fire-and-forget only. That's
+fine here since the companion window is still where Yes/No/Open Claude
+actually happen.
 
 **Companion visuals are a placeholder** (an emoji face + a text bubble) —
 the real character design is a separate pass.
+
+## Rate-limit awareness
+
+The menu bar dropdown shows your current 5-hour and weekly usage
+percentage (e.g. `Usage — 5h: 24% · Weekly: 7%`), refreshed every 30s.
+[`UsageStats.swift`](Nudge/Sources/Nudge/UsageStats.swift) reads this
+straight out of `~/Library/Application Support/Claude/plan-usage-history.json`
+— the same file Claude Desktop already writes for its own "Plan usage"
+panel — so there's no extra polling or API call involved. Another idea
+lifted from claude-menubar-buddy, which reflects the same numbers as its
+pet's mood; we don't have a mood system, so it's plain text in the menu
+instead. Shows "Usage: unavailable" if the file's missing or the most
+recent sample doesn't have both numbers — e.g. before Claude Desktop's
+own usage panel has run at least once.
 
 ## How it works
 

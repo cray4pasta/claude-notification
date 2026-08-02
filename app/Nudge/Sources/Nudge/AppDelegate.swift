@@ -3,7 +3,14 @@ import Cocoa
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var toggleMenuItem: NSMenuItem!
+    private var usageMenuItem: NSMenuItem!
+    private var usageRefreshTimer: Timer!
     private var socketServer: SocketServer!
+
+    /// Matches claude-menubar-buddy's cadence — Claude Desktop doesn't
+    /// update plan-usage-history.json more often than that, so polling
+    /// faster would just be wasted work.
+    private static let usageRefreshInterval: TimeInterval = 30
 
     /// Comfortably under Claude Code's 600s default PreToolUse hook
     /// timeout (spike/M0-findings.md §3), leaving headroom for the human
@@ -32,10 +39,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         startSocketServer()
         refreshCompanionVisibility()
+
+        refreshUsage()
+        usageRefreshTimer = Timer.scheduledTimer(
+            withTimeInterval: Self.usageRefreshInterval, repeats: true
+        ) { [weak self] _ in self?.refreshUsage() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         socketServer?.stop()
+        usageRefreshTimer?.invalidate()
     }
 
     private func buildStatusItem() {
@@ -49,6 +62,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statusMenuItem = NSMenuItem(title: "Listening for Claude Code", action: nil, keyEquivalent: "")
         statusMenuItem.isEnabled = false
         menu.addItem(statusMenuItem)
+
+        usageMenuItem = NSMenuItem(title: UsageStats.menuTitle(for: .init(fiveHourPct: nil, weeklyPct: nil)), action: nil, keyEquivalent: "")
+        usageMenuItem.isEnabled = false
+        menu.addItem(usageMenuItem)
         menu.addItem(.separator())
 
         toggleMenuItem = NSMenuItem(
@@ -82,6 +99,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshCompanionVisibility() {
         CompanionWindowController.shared.refreshVisibility()
+    }
+
+    private func refreshUsage() {
+        // File I/O off the main thread; only the menu title update hops back.
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let snapshot = UsageStats.snapshot()
+            let title = UsageStats.menuTitle(for: snapshot)
+            DispatchQueue.main.async {
+                self?.usageMenuItem.title = title
+            }
+        }
     }
 
     @objc private func quit() {
@@ -126,6 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "Notification":
             let summary = Summarizer.summarizeNotification(event)
             DebugLog.log("notification enqueued: \(summary.body)")
+            NotificationManager.deliver(summary: summary)
             DispatchQueue.main.async {
                 CompanionWindowController.shared.enqueue(.info(summary))
             }
@@ -149,6 +178,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let toolName = event.toolName, Self.questionToolNames.contains(toolName) {
             let summary = Summarizer.summarizeQuestion(event)
             DebugLog.log("PreToolUse question surfaced (not gated): \(summary.body)")
+            NotificationManager.deliver(summary: summary)
             DispatchQueue.main.async {
                 CompanionWindowController.shared.enqueue(.info(summary))
             }
@@ -160,6 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         PendingRequestStore.shared.register(id)
         DebugLog.log("PreToolUse ask enqueued id=\(id) tool=\(event.toolName ?? "nil") body=\(summary.body) risky=\(summary.isRisky) timeout=\(Self.gateTimeout)s")
 
+        NotificationManager.deliver(summary: summary)
         DispatchQueue.main.async {
             CompanionWindowController.shared.enqueue(.ask(id: id, summary))
         }

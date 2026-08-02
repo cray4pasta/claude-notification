@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/prernakashyap/Claude notification/app/scripts/lifecycle-hook.sh"
+            "command": "\"/Users/prernakashyap/Claude notification/app/scripts/lifecycle-hook.sh\""
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/prernakashyap/Claude notification/app/scripts/lifecycle-hook.sh"
+            "command": "\"/Users/prernakashyap/Claude notification/app/scripts/lifecycle-hook.sh\""
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/prernakashyap/Claude notification/app/scripts/lifecycle-hook.sh"
+            "command": "\"/Users/prernakashyap/Claude notification/app/scripts/lifecycle-hook.sh\""
           }
         ]
       }
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/prernakashyap/Claude notification/app/scripts/gate-hook.sh",
+            "command": "\"/Users/prernakashyap/Claude notification/app/scripts/gate-hook.sh\"",
             "timeout": 300
           }
         ]

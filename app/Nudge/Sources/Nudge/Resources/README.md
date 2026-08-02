@@ -5,11 +5,15 @@ them up automatically on next launch — no code changes needed. Anything
 missing just falls back to the current emoji, so the app works fine before
 and during art production.
 
-## Files needed (5 moods)
+## Files needed (4 moods)
+
+The companion only appears when there's actually something to show you —
+it disappears the instant you resolve it, rather than sitting on screen
+idle — so there's no "resting" mood to draw here, just the states that
+correspond to something actually being on screen.
 
 | Filename | When it shows | What it should feel like |
 |---|---|---|
-| `idle.gif` | Nothing pending — companion is just sitting there | Calm, resting, maybe a slow breathing/blinking loop |
 | `asking.gif` | Waiting on your Yes/No for a normal (non-risky) request | Attentive, curious — "well?" |
 | `alert.gif` | Waiting on Yes/No for something flagged risky (`rm -rf`, force-push, etc.), or a risky heads-up | Concerned/alarmed — reinforces the red accent stripe already shown alongside it |
 | `question.gif` | Claude asked *you* a question (not a permission ask) | Curious, thinking — there's an answer to go type, no decision to make here |

@@ -43,13 +43,22 @@ final class CompanionWindowController: NSObject {
     // MARK: - Visibility
 
     /// Call whenever SettingsStore or SessionTracker state changes.
+    ///
+    /// Note this only *permits* visibility when a session is active and
+    /// Nudge is enabled — it doesn't force the window on screen by itself.
+    /// The window only actually appears when there's a real item to show
+    /// (see enqueue/showNextIfNeeded); it disappears again the moment
+    /// you've resolved everything, rather than lingering with an idle
+    /// face the whole session.
     func refreshVisibility() {
         let shouldShow = SettingsStore.shared.isEnabled && SessionTracker.shared.hasActiveSessions
         DebugLog.log("refreshVisibility shouldShow=\(shouldShow) enabled=\(SettingsStore.shared.isEnabled) hasActiveSessions=\(SessionTracker.shared.hasActiveSessions)")
         if shouldShow {
-            positionWindow()
-            window.orderFrontRegardless()
-            if currentItem == nil { renderIdle() }
+            if currentItem != nil || !queue.isEmpty {
+                positionWindow()
+                window.orderFrontRegardless()
+                showNextIfNeeded()
+            }
         } else {
             window.orderOut(nil)
         }
@@ -67,6 +76,15 @@ final class CompanionWindowController: NSObject {
             return
         }
         queue.append(item)
+        // Must reposition here, not just in refreshVisibility() - this is
+        // the actual first place the window gets shown after a session
+        // starts (refreshVisibility no longer positions/shows on its own
+        // when nothing's queued yet, which is the normal case right after
+        // SessionStart). Skipping this left the window at its raw (0,0)
+        // init origin - bottom-left corner - on the very first ask of a
+        // session, which is exactly the bug this once masked by always
+        // repositioning on every session-start regardless of content.
+        positionWindow()
         window.orderFrontRegardless()
         showNextIfNeeded()
     }
@@ -92,7 +110,10 @@ final class CompanionWindowController: NSObject {
         guard currentItem == nil else { return }
         infoDismissTimer?.invalidate()
         guard !queue.isEmpty else {
-            renderIdle()
+            // Nothing left to show — disappear rather than sit there
+            // idle. It comes back the instant something new arrives
+            // (enqueue orders it front again).
+            window.orderOut(nil)
             return
         }
         let next = queue.removeFirst()
@@ -157,6 +178,11 @@ final class CompanionWindowController: NSObject {
         }
     }
 
+    /// Sets a sane default look before anything's ever been shown. Not
+    /// actually reachable on screen anymore in normal use — the window
+    /// only appears when there's a real item (see showNextIfNeeded) — but
+    /// kept as the window's cold-init state so labels/accent aren't left
+    /// in a blank/undefined state before the first real render() call.
     private func renderIdle() {
         setMood("idle", fallbackEmoji: "🙂")
         bodyLabel.stringValue = ""

@@ -68,6 +68,18 @@ Merge [`settings.example.json`](settings.example.json) into
 (scoped) — don't overwrite whatever's already there. Update the script
 paths if you move this repo.
 
+**The `command` paths must stay wrapped in escaped double quotes**
+(`"\"/path/with a space/script.sh\""`), not bare strings. Claude Code
+runs `command` hooks through a shell, and this repo's own path — `Claude
+notification` — has a space in it; a bare unquoted path silently splits
+mid-string (`sh: /Users/you/Claude: No such file or directory`, exit
+127) and Claude Code treats that as a non-blocking hook error, so it
+just proceeds normally with **no visible failure** and nothing ever
+reaches Nudge. This is exactly what happened during initial testing —
+looked identical to "Nudge isn't receiving anything" from every other
+angle (Desktop vs. Terminal, resumed vs. fresh session) until reproduced
+directly with `sh -c "<unquoted command>"`.
+
 ## Manual testing without clicking anything
 
 Screen capture / display access wasn't available in the environment this

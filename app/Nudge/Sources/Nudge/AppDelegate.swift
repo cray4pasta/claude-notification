@@ -198,6 +198,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let summary = Summarizer.summarizeToolUse(event)
+
+        if AlwaysAllowStore.shared.isAlwaysAllowed(cwd: event.cwd, toolName: event.toolName, detail: summary.rawDetail) {
+            DebugLog.log("PreToolUse always-allowed tool=\(event.toolName ?? "nil") detail=\(summary.rawDetail ?? "nil")")
+            return encodeDecision("allow", reason: "Always-allowed for this project")
+        }
+
         let id = UUID()
         PendingRequestStore.shared.register(id)
         DebugLog.log("PreToolUse ask enqueued id=\(id) tool=\(event.toolName ?? "nil") body=\(summary.body) risky=\(summary.isRisky) timeout=\(Self.gateTimeout)s")

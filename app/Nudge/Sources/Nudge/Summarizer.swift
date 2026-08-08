@@ -15,6 +15,11 @@ enum Summarizer {
         /// approve/deny — the answer happens in the terminal — so this
         /// only ever renders as a heads-up, never a Yes/No ask.
         let isQuestion: Bool
+        /// Raw tool name (e.g. "Bash"), needed alongside cwd + rawDetail to
+        /// record an AlwaysAllowStore rule at the same granularity
+        /// AppDelegate checks it. nil for Notification-hook summaries,
+        /// which never go through the always-allow path.
+        let toolName: String?
     }
 
     private static let riskyKeywords = [
@@ -53,7 +58,7 @@ enum Summarizer {
             body = rawMessage.map(cleaned) ?? "Claude has an update for you."
         }
 
-        return Summary(title: projectName, body: body, isRisky: risky, rawDetail: rawMessage, cwd: event.cwd, isQuestion: false)
+        return Summary(title: projectName, body: body, isRisky: risky, rawDetail: rawMessage, cwd: event.cwd, isQuestion: false, toolName: nil)
     }
 
     // MARK: - PreToolUse hook (gate-able)
@@ -93,7 +98,8 @@ enum Summarizer {
             isRisky: isRisky(riskyCheck),
             rawDetail: detail,
             cwd: event.cwd,
-            isQuestion: false
+            isQuestion: false,
+            toolName: event.toolName
         )
     }
 
@@ -128,7 +134,8 @@ enum Summarizer {
             isRisky: false,
             rawDetail: body,
             cwd: event.cwd,
-            isQuestion: true
+            isQuestion: true,
+            toolName: event.toolName
         )
     }
 

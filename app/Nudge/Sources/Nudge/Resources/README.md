@@ -15,7 +15,7 @@ correspond to something actually being on screen.
 | Filename | When it shows | What it should feel like |
 |---|---|---|
 | `asking.gif` | Waiting on your Yes/No for a normal (non-risky) request | Attentive, curious — "well?" |
-| `alert.gif` | Waiting on Yes/No for something flagged risky (`rm -rf`, force-push, etc.), or a risky heads-up | Concerned/alarmed — reinforces the red accent stripe already shown alongside it |
+| `alert.gif` | Waiting on Yes/No for something flagged risky (`rm -rf`, force-push, etc.), or a risky heads-up | Concerned/alarmed — reinforces the red Yes/Always Allow buttons shown alongside it |
 | `question.gif` | Claude asked *you* a question (not a permission ask) | Curious, thinking — there's an answer to go type, no decision to make here |
 | `notify.gif` | General FYI heads-up (e.g. "Claude's been idle waiting on you") | Friendly, casual |
 
@@ -25,11 +25,20 @@ correspond to something actually being on screen.
   = true` plays it automatically using the GIF's own frame timing, so no
   particular frame rate is required, just don't make individual frames so
   slow it reads as static.
-- **Square canvas.** The display slot is small (~48×44pt) but this Mac's
-  screen is Retina — export at **128×128px minimum** (256×256 is fine too)
-  so it stays crisp scaled down, not blurry scaled up. Non-square art gets
-  letterboxed to fit rather than stretched, so it doesn't have to be
-  pixel-perfect square, just roughly so.
+- **Square canvas, 130×130pt display slot** — bigger than the original
+  small-icon version, since the character now sits overlapping the
+  bubble's bottom-left corner (like the reference mockup) rather than as a
+  small icon inside it. Export at **260×260px or larger** so it stays
+  crisp on this Mac's Retina display. Non-square art gets letterboxed to
+  fit rather than stretched.
+- **Compose for the overlap.** The character's frame sits at the window's
+  bottom-left corner, and the bubble's bottom-left corner sits inset from
+  that by about (86pt, 30pt) — so roughly the character's *upper-right*
+  third is what visually overlaps the bubble edge (matching the reference:
+  head/ears poking up into the bubble corner, body sitting below-left of
+  it). Draw with that overlap in mind rather than a centered icon — a
+  character sized/posed to fill its full 130×130 frame edge-to-edge will
+  read much better here than a small centered figure.
 - **Transparent background.** GIF only supports 1-bit (on/off) transparency,
   not smooth alpha — so edges against the transparent area will be hard
   rather than softly anti-aliased. Design with that in mind (a clean
